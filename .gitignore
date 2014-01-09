@@ -1,0 +1,7 @@
+MANIFEST
+build/
+dist/
+parsem/*.pyc
+c/*~
+c/bamParser
+pip-log.txt
