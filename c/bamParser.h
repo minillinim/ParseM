@@ -1,8 +1,8 @@
 //#############################################################################
 //
-//   __Script__Name__
+//   bamParser.h
 //   
-//   <one line to give the program's name and a brief idea of what it does.>
+//   Determine average coverage values and linking read pairs
 //
 //   Copyright (C) Michael Imelfort
 //
@@ -22,7 +22,7 @@
 //#############################################################################
 
 #ifndef PM_BAM_PARSER_H
-#define PM_BAM_PARSER_H
+  #define PM_BAM_PARSER_H
 
 // system includes
 #include <stdlib.h>
@@ -42,7 +42,14 @@
 
 typedef BGZF bamFile;
 
-typedef struct {                    // auxiliary data structure
+/*! @typedef
+ @ *a*bstract Auxiliary data structure used in read_bam
+ @field fp the file handler
+ @field iter NULL if a region not specified
+ @field min_mapQ mapQ filter
+ @field min_len length filter
+ */
+typedef struct {                    // 
     bamFile *fp;                    // the file handler
     hts_itr_t *iter;                // NULL if a region not specified
     int min_mapQ, min_len;          // mapQ filter; length filter
@@ -58,12 +65,12 @@ typedef struct {                    // auxiliary data structure
  @field links linking pairs
  */
 typedef struct {
-    int ** total_reads;             // stores number of mapped reads for contigs
+    int ** total_reads;
     char ** contig_names;
     float * contig_lengths;
-    int num_bams;                   // mainly used so that the free operation works nicely
+    int num_bams;
     int num_contigs;
-    cfuhash_table_t * links;        // stores linking information
+    cfuhash_table_t * links;
 } PM_mapping_results;
 
 #ifdef __cplusplus
@@ -71,18 +78,49 @@ extern "C" {
 #endif
 
 int read_bam(void *data,
-                bam1_t *b);
+             bam1_t *b);
 
+/*!
+ * @abstract Initialise the mapping results struct
+ * 
+ * @param  MR  mapping results struct to initialise
+ * @param  BAM_header  htslib BAM header
+ * @param  numBams  number of BAM files we'll be parsing
+ * @return void
+ * 
+ * @discussion If you call this function then you MUST call destroy_MR
+ * when you're done.
+ */
 void init_MR(PM_mapping_results * MR,
              bam_hdr_t * BAM_header,
-             int numBams,
-             int doAverages);
+             int numBams);
 
+/*!
+ * @abstract Free all the memory calloced in init_MR
+ * 
+ * @param  MR  mapping results struct to destroy
+ * @return void
+ * 
+ * @discussion If you call this function then you MUST call destroy_MR
+ * when you're done.
+ */
 void destroy_MR(PM_mapping_results * MR);
 
-void print_MR(PM_mapping_results * MR,
-              int printPairedLinks);
-
+/*!
+ * @abstract Initialise the mapping results struct
+ * 
+ * @param  numBams  number of BAM files we'll be parsing
+ * @param  baseQ  base quality threshold
+ * @param  mapQ  mapping quality threshold
+ * @param  minLen  min query length
+ * @param  doLinks  number of BAM files we'll be parsing
+ * @param  ignoreSuppAlignments  only use primary alignments
+ * @param  doOutlierCoverage  remove effects fo very high or very low regions
+ * @param  bamFiles  filenames of BAM files we'll be parsing
+ * @param  MR  mapping results struct to write to
+ * @return 0 for success
+ * 
+ */
 int processBams(int numBams,
                 int baseQ,
                 int mapQ,
@@ -92,6 +130,13 @@ int processBams(int numBams,
                 int doOutlierCoverage,
                 char* bamFiles[],
                 PM_mapping_results * MR);
+
+    /***********************
+    *** PRINTING AND I/O ***
+    ***********************/
+
+void print_MR(PM_mapping_results * MR,
+              int printPairedLinks);
 
 #ifdef __cplusplus
 }

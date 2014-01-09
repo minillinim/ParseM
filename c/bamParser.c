@@ -1,8 +1,8 @@
 //#############################################################################
 //
-//   __Script__Name__
+//   bamParser.c
 //   
-//   <one line to give the program's name and a brief idea of what it does.>
+//   Determine average coverage values and linking read pairs
 //
 //   Copyright (C) Michael Imelfort
 //
@@ -42,24 +42,9 @@
 #define PM_BAM_FSUPP (BAM_FSECONDARY | BAM_FSUPPLEMENTARY)
 #define PM_BAM_FMAPPED (BAM_FMUNMAP | BAM_FUNMAP)
 
-// This function reads a BAM alignment from one BAM file.
-int read_bam(void *data,
-             bam1_t *b) // read level filters better go here to avoid pileup
-{
-    aux_t *aux = (aux_t*)data; // data in fact is a pointer to an auxiliary structure
-    int ret = aux->iter? hts_itr_next(aux->fp, aux->iter, b, (hts_readrec_f)(bam_readrec), 0) : bam_read1(aux->fp, b);
-    if (!(b->core.flag&BAM_FUNMAP)) {
-        if ((int)b->core.qual < aux->min_mapQ) b->core.flag |= BAM_FUNMAP;
-        else if (aux->min_len && bam_cigar2qlen((&b->core)->n_cigar, bam_get_cigar(b)) < aux->min_len) b->core.flag |= BAM_FUNMAP;
-    }
-    return ret;
-}
-
-
 void init_MR(PM_mapping_results * MR,
              bam_hdr_t * BAM_header,
-             int numBams,
-             int doAverages)
+             int numBams)
 {
     //----
     // initialise the MR object
@@ -69,13 +54,12 @@ void init_MR(PM_mapping_results * MR,
     MR->num_bams = numBams;
     
     if(MR->num_contigs != 0 && MR->num_bams != 0) {
-        // only make these guys if needed
-        if(doAverages) {
-            MR->total_reads = calloc(MR->num_contigs, sizeof(int*));
-            for(i = 0; i < MR->num_contigs; ++i) {
-                MR->total_reads[i] = calloc(MR->num_bams, sizeof(int));
-            }        
-        }
+        // make room to store read counts
+        MR->total_reads = calloc(MR->num_contigs, sizeof(int*));
+        for(i = 0; i < MR->num_contigs; ++i) {
+            MR->total_reads[i] = calloc(MR->num_bams, sizeof(int));
+        }        
+
         // always make these guys
         MR->contig_names = calloc(MR->num_contigs, sizeof(char*));
         MR->contig_lengths = calloc(MR->num_contigs, sizeof(float));
@@ -123,25 +107,17 @@ void destroy_MR(PM_mapping_results * MR)
     free(MR);
 }
 
-void print_MR(PM_mapping_results * MR, int printPairedLinks) {
-    //----
-    // print mapping results
-    //
-    if(MR->num_contigs != 0 && MR->num_bams != 0) {
-        if(MR->total_reads != NULL) {
-            int i = 0, j = 0;
-            for(i = 0; i < MR->num_contigs; ++i) {
-                printf("%s\t%0.0f", MR->contig_names[i], MR->contig_lengths[i]);
-                for(j = 0; j < MR->num_bams; ++j) {
-                    printf("\t%0.3f", (float)MR->total_reads[i][j]/MR->contig_lengths[i]);
-                }
-                printf("\n");
-            }
-        }
+// This function reads a BAM alignment from one BAM file.
+int read_bam(void *data,
+             bam1_t *b) // read level filters better go here to avoid pileup
+{
+    aux_t *aux = (aux_t*)data; // data in fact is a pointer to an auxiliary structure
+    int ret = aux->iter? hts_itr_next(aux->fp, aux->iter, b, (hts_readrec_f)(bam_readrec), 0) : bam_read1(aux->fp, b);
+    if (!(b->core.flag&BAM_FUNMAP)) {
+        if ((int)b->core.qual < aux->min_mapQ) b->core.flag |= BAM_FUNMAP;
+        else if (aux->min_len && bam_cigar2qlen((&b->core)->n_cigar, bam_get_cigar(b)) < aux->min_len) b->core.flag |= BAM_FUNMAP;
     }
-    if(printPairedLinks) {
-        printLinks(MR->links, MR->contig_names);
-    }
+    return ret;
 }
 
 int processBams(int numBams,
@@ -157,6 +133,10 @@ int processBams(int numBams,
     //-----
     // work out coverage depths and also pairwise linkages if asked to do so
     //
+    int supp_check = 0x0; // include supp mappings
+    if (ignoreSuppAlignments) {
+        supp_check = PM_BAM_FSUPP;
+    }
     
     // initialize the auxiliary data structures
     const bam_pileup1_t **plp;
@@ -188,7 +168,7 @@ int processBams(int numBams,
     }
     
     // initialise the mapping results struct
-    init_MR(MR, h, numBams, 1);
+    init_MR(MR, h, numBams);
     
     // the core multi-pileup loop
     mplp = bam_mplp_init(numBams, read_bam, (void**)data); // initialization
@@ -226,7 +206,7 @@ int processBams(int numBams,
                         (core.flag & BAM_FPAIRED) &&                // read is a paired read
                         (core.flag & BAM_FREAD1) &&                 // read is first in pair (avoid dupe links)
                         ((core.flag & PM_BAM_FMAPPED) == 0) &&      // both ends are mapped
-                        ((core.flag & PM_BAM_FSUPP) == 0) &&        // is primary mapping
+                        ((core.flag & supp_check) == 0) &&          // is primary mapping (optional)
                         core.tid != core.mtid) {                    // hits different contigs
                         
                         // looks legit
@@ -245,6 +225,7 @@ int processBams(int numBams,
         prev_tid = tid;
     }
     
+    // who hates segfaults?
     free(n_plp); free(plp);
     bam_mplp_destroy(mplp);
     bam_hdr_destroy(h);
@@ -256,4 +237,23 @@ int processBams(int numBams,
     }
     free(data);
     return 0;
+}
+
+void print_MR(PM_mapping_results * MR, int printPairedLinks) {
+    if(MR->num_contigs != 0 && MR->num_bams != 0) {
+        if(MR->total_reads != NULL) {
+            int i = 0, j = 0;
+            for(i = 0; i < MR->num_contigs; ++i) {
+                printf("%s\t%0.0f", MR->contig_names[i], MR->contig_lengths[i]);
+                for(j = 0; j < MR->num_bams; ++j) {
+                    // print average coverages                    
+                    printf("\t%0.3f", (float)MR->total_reads[i][j]/MR->contig_lengths[i]);
+                }
+                printf("\n");
+            }
+        }
+    }
+    if(printPairedLinks) {
+        printLinks(MR->links, MR->contig_names);
+    }
 }

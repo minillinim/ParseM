@@ -1,8 +1,8 @@
 //#############################################################################
 //
-//   __Script__Name__
+//   pairedLink.c
 //   
-//   <one line to give the program's name and a brief idea of what it does.>
+//   Implements struct and methods for storing paired read links
 //
 //   Copyright (C) Michael Imelfort
 //
@@ -34,6 +34,7 @@
 
 void makeContigKey(char* keyStore, int cid_1, int cid_2)
 {
+    // force cid_1 < cid_2 for consistent keys
     if(cid_1 < cid_2) {sprintf(keyStore, "%d,%d", cid_1, cid_2);}
     else {sprintf(keyStore, "%d,%d",cid_2, cid_1);}
 }
@@ -48,7 +49,7 @@ void addLink(cfuhash_table_t * linkHash,
              int bam_ID
             )
 {
-    // store the link info
+    // store the link info, swap order of cid_1 and cid_2 if needed
     PM_link_info* LI = (PM_link_info*) calloc(1, sizeof(PM_link_info));
     if(cid_1 < cid_2){
         LI->orient_1 = orient_1;

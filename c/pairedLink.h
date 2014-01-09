@@ -1,8 +1,8 @@
 //#############################################################################
 //
-//   __Script__Name__
+//   pairedLink.h
 //   
-//   <one line to give the program's name and a brief idea of what it does.>
+//   Implements struct and methods for storing paired read links
 //
 //   Copyright (C) Michael Imelfort
 //
@@ -22,7 +22,7 @@
 //#############################################################################
 
 #ifndef PM_PAIRED_LINK_H
-#define PM_PAIRED_LINK_H
+  #define PM_PAIRED_LINK_H
 
 // system includes
 #include <stdlib.h>
