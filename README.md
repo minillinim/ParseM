@@ -4,7 +4,15 @@
 
 ## Installation
 
-Should be as simple as
+Dependencies:
+
+The BAM parsing is done using c and a few external libraries. At minimum you will need:
+
+    gcc
+    libcfu
+    htslib
+
+Then it should be as simple as
 
     pip install ParseM
 
