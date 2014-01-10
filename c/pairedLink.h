@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <stdint.h>
 
 // cfuhash
 #include "cfuhash.h"
@@ -42,11 +43,9 @@
  @field next_link link to next link info struct (linked list)
  */
 typedef struct {
-    int pos_1;
-    int orient_1;
-    int pos_2;
-    int orient_2;
-    int bam_ID;
+    uint32_t pos_1:31, orient_1:1;
+    uint32_t pos_2:31, orient_2:1;
+    uint32_t bam_ID;
     struct PM_link_info * next_link;
 } PM_link_info;
 
@@ -58,9 +57,9 @@ typedef struct {
  * @field LI first link info struct for this contig pair
  */
 typedef struct {
-    int cid_1;
-    int cid_2;
-    int numLinks;
+    uint32_t cid_1;
+    uint32_t cid_2;
+    uint32_t numLinks;
     PM_link_info * LI;
 } PM_link_pair;
 

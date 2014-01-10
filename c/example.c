@@ -10,13 +10,14 @@
 int main(int argc, char *argv[])
 {
     // parse the command line
-    int n = 0, do_links = 0, baseQ = 0, mapQ = 0, min_len = 0;
-    while ((n = getopt(argc, argv, "q:Q:l:L")) >= 0) {
+    int n = 0, do_links = 0, baseQ = 0, mapQ = 0, min_len = 0, do_outlier_coverage = 0;
+    while ((n = getopt(argc, argv, "q:Q:l:L:o")) >= 0) {
         switch (n) {
             case 'l': min_len = atoi(optarg); break; // minimum query length
             case 'q': baseQ = atoi(optarg); break;   // base quality threshold
             case 'Q': mapQ = atoi(optarg); break;    // mapping quality threshold
             case 'L': do_links = 1; break;
+            case 'o': do_outlier_coverage = 1; break;
         }
     }
     if (optind == argc) {
@@ -27,6 +28,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "   -l <int>            minQLen\n");
         fprintf(stderr, "   -q <int>            base quality threshold\n");
         fprintf(stderr, "   -Q <int>            mapping quality threshold\n");
+        fprintf(stderr, "   -o                  do outlier coverage corrections\n");
         fprintf(stderr, "\n");
         return 1;
     }
@@ -39,10 +41,17 @@ int main(int argc, char *argv[])
     }
     
     PM_mapping_results * mr = calloc(1, sizeof(PM_mapping_results));
-    
-    int ret_val = processBams(num_bams, baseQ, mapQ, min_len, do_links, 0, 0, bam_files, mr);
-    
-    print_MR(mr, 1);
+    int ignore_supps = 1;
+    int ret_val = parseCoverageAndLinks(num_bams,
+                                        baseQ,
+                                        mapQ,
+                                        min_len,
+                                        do_links,
+                                        ignore_supps,
+                                        do_outlier_coverage,
+                                        bam_files,
+                                        mr);
+    print_MR(mr);
     destroy_MR(mr);
     
     for (i = 0; i < num_bams; ++i) {

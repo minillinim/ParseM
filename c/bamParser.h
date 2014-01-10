@@ -29,6 +29,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <stdint.h>
 
 // htslib
 #include "htslib/bgzf.h"
@@ -57,19 +58,24 @@ typedef struct {                    //
 
 /*! @typedef
  @ a*bstract Structure for returning mapping results
- @field total_reads number of reads mapped to each contig
+ @field plp_bp number of bases piled up on each contig
  @field contig_names names of the reference sequences
  @field contig_lengths lengths of the referene sequences
+ @field contig_length_correctors corrections to contig lengths used when doing outlier coverage
  @field num_bams number of BAM files parsed
+ @field is_links_included are links being calculated
+ @field is_outlier_coverage is outlier adjusted coverage being calculated
+ @field is_ignore_supps are supplementary alignments being ignored
  @field num_contigs number of reference sequences
  @field links linking pairs
  */
 typedef struct {
-    int ** total_reads;
+    uint32_t ** plp_bp;
+    uint32_t * contig_lengths;
+    uint32_t ** contig_length_correctors;
+    uint32_t is_links_included:1, is_outlier_coverage:1, is_ignore_supps:1, num_bams:29;
+    uint32_t num_contigs;
     char ** contig_names;
-    float * contig_lengths;
-    int num_bams;
-    int num_contigs;
     cfuhash_table_t * links;
 } PM_mapping_results;
 
@@ -83,9 +89,12 @@ int read_bam(void *data,
 /*!
  * @abstract Initialise the mapping results struct
  * 
- * @param  MR  mapping results struct to initialise
- * @param  BAM_header  htslib BAM header
- * @param  numBams  number of BAM files we'll be parsing
+ * @param MR  mapping results struct to initialise
+ * @param BAM_header  htslib BAM header
+ * @param numBams  number of BAM files to parse
+ * @param doOutlierCoverage  set to 1 if should initialise contig_length_correctors
+ * @param doLinks  1 if links should be calculated
+ * @param ignoreSuppAlignments  only use primary alignments
  * @return void
  * 
  * @discussion If you call this function then you MUST call destroy_MR
@@ -93,7 +102,11 @@ int read_bam(void *data,
  */
 void init_MR(PM_mapping_results * MR,
              bam_hdr_t * BAM_header,
-             int numBams);
+             int numBams,
+             int doLinks,
+             int doOutlierCoverage,
+             int ignoreSuppAlignments
+);
 
 /*!
  * @abstract Free all the memory calloced in init_MR
@@ -109,34 +122,74 @@ void destroy_MR(PM_mapping_results * MR);
 /*!
  * @abstract Initialise the mapping results struct
  * 
- * @param  numBams  number of BAM files we'll be parsing
- * @param  baseQ  base quality threshold
- * @param  mapQ  mapping quality threshold
- * @param  minLen  min query length
- * @param  doLinks  number of BAM files we'll be parsing
- * @param  ignoreSuppAlignments  only use primary alignments
- * @param  doOutlierCoverage  remove effects fo very high or very low regions
- * @param  bamFiles  filenames of BAM files we'll be parsing
- * @param  MR  mapping results struct to write to
+ * @param numBams  number of BAM files to parse
+ * @param baseQ  base quality threshold
+ * @param mapQ  mapping quality threshold
+ * @param minLen  min query length
+ * @param doLinks  1 if links should be calculated
+ * @param ignoreSuppAlignments  only use primary alignments
+ * @param doOutlierCoverage  set to 1 if should initialise contig_length_correctors
+ * @param bamFiles  filenames of BAM files ro parse
+ * @param MR  mapping results struct to write to
  * @return 0 for success
  * 
+ * @discussion This function expects MR to be a null pointer. It calls 
+ * init_MR and stores info accordingly. TL;DR If you call this function
+ * then you MUST call destroy_MR when you're done.
+ * 
  */
-int processBams(int numBams,
-                int baseQ,
-                int mapQ,
-                int minLen, 
-                int doLinks,
-                int ignoreSuppAlignments,
-                int doOutlierCoverage,
-                char* bamFiles[],
-                PM_mapping_results * MR);
+int parseCoverageAndLinks(int numBams,
+                          int baseQ,
+                          int mapQ,
+                          int minLen, 
+                          int doLinks,
+                          int ignoreSuppAlignments,
+                          int doOutlierCoverage,
+                          char* bamFiles[],
+                          PM_mapping_results * MR);
+                              
+/*!
+ * @abstract Adjust (reduce) the number of piled-up bases along a contig
+ * 
+ * @param  MR  mapping results struct to write to
+ * @param  position_holder  array of pileup depths
+ * @param  tid  contig currently being processed
+ * @param  doOutlierCoverage  remove effects fo very high or very low regions
+ * @return void
+ * 
+ * @discussion This function expects MR to be initialised.
+ * it can change the values of contig_length_correctors and plp_bp
+ */
+void adjustPlpBp(PM_mapping_results * MR,
+                 uint32_t ** position_holder,
+                 int tid);
 
+/*!
+ * @abstract Calculate the coverage for each contig for each BAM
+ * 
+ * @param  MR  mapping results struct with mapping info
+ * @return matrix of floats (rows = contigs, cols = BAMs)
+ * 
+ * @discussion This function expects MR to be initialised.
+ * NOTE: YOU are responsible for freeing the return value
+ * recommended method is to use destroyCoverages
+ */
+float ** calculateCoverages(PM_mapping_results * MR);
+
+/*!
+ * @abstract Calculate the coverage for each contig for each BAM
+ * 
+ * @param covs array to destroy
+ * @param numContigs number of rows in array
+ * @return void
+ */
+void destroyCoverages(float ** covs, int numContigs);
+    
     /***********************
     *** PRINTING AND I/O ***
     ***********************/
 
-void print_MR(PM_mapping_results * MR,
-              int printPairedLinks);
+void print_MR(PM_mapping_results * MR);
 
 #ifdef __cplusplus
 }
