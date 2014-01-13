@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 ###############################################################################
 #                                                                             #
-#    ParseM.py                                                                #
+#    ContigParser.py                                                          #
 #                                                                             #
-#    Generic parsers for bioinformatics formats                               #
+#    Class for parsing contigs                                                #
 #                                                                             #
 #    Copyright (C) Michael Imelfort, Donovan Parks                            #
 #                                                                             #
@@ -38,12 +38,27 @@ __status__ = "Dev"
 ###############################################################################
 ###############################################################################
 
-class TemplateClass():
-    """Utilities wrapper"""
+class ContigParser:
+    """Main class for reading in and parsing contigs"""
     def __init__(self): pass
 
-    def sayHi(self):
-        print("ParseM doesn't so anything on it's own. Perhaps we could put some demos here?" )
+    def readFasta(self, fp): # this is a generator function
+        header = None
+        seq = None
+        while True:
+            for l in fp:
+                if l[0] == '>': # fasta header line
+                    if header is not None:
+                        # we have reached a new sequence
+                        yield header, "".join(seq)
+                    header = l.rstrip()[1:].partition(" ")[0] # save the header we just saw
+                    seq = []
+                else:
+                    seq.append(l.rstrip())
+            # anything left in the barrel?
+            if header is not None:
+                yield header, "".join(seq)
+            break
 
 ###############################################################################
 ###############################################################################

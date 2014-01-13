@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 ###############################################################################
 #                                                                             #
-#    ParseM.py                                                                #
+#    BamParser.py                                                             #
 #                                                                             #
-#    Generic parsers for bioinformatics formats                               #
+#    Class for parsing BAM files                                              #
 #                                                                             #
 #    Copyright (C) Michael Imelfort, Donovan Parks                            #
 #                                                                             #
@@ -34,16 +34,20 @@ __email__ = "mike@mikeimelfort.com"
 __status__ = "Dev"
 
 ###############################################################################
+import os
+import ctypes as c
+
+###############################################################################
 ###############################################################################
 ###############################################################################
 ###############################################################################
 
-class TemplateClass():
-    """Utilities wrapper"""
-    def __init__(self): pass
-
-    def sayHi(self):
-        print("ParseM doesn't so anything on it's own. Perhaps we could put some demos here?" )
+class BamParser:
+    """Main class for reading in and parsing contigs"""
+    def __init__(self):
+        libPMBam = c.cdll.LoadLibrary('/home/uqmimelf/working/sw/ParseM/c/libPMBam.a')
+        vom = libPMBam.vomit
+        print vom(9)
 
 ###############################################################################
 ###############################################################################

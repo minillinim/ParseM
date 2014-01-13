@@ -4,4 +4,7 @@ dist/
 parsem/*.pyc
 c/*~
 c/bamParser
+c/config.status
+c/*.o
+c/*.a
 pip-log.txt

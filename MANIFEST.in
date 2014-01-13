@@ -1,2 +1,5 @@
-include *.txt
-recursive-include docs *.txt
+include *.md
+recursive-include c *.c
+recursive-include c *.h
+recursive-include c configure*
+recursive-include c Make*

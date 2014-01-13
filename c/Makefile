@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -g -fPIC -pthread -O2 -Wall
-HTS_LIB_LOC = /usr/local/lib
+HTS_LIB_LOC = /home/uqmimelf/local/opt/htslib
 LIB_FLAGS = -static-libgcc -shared -Wl,-rpath,$(HTS_LIB_LOC),-soname,libPMBam.so.0
 LIBS = -lcfu -lhts -lm
 EXECUTABLE = bamParser
