@@ -34,7 +34,7 @@
 #include "cfuhash.h"
 
 /*! @typedef
- @ *a*bstract Structure for storing information about specific links
+ @abstract Structure for storing information about specific links
  @field pos_1 position of read in contig 1
  @field orient_1 orientation of read in contig 1 (1 == reversed)
  @field pos_2 position of read in contig 2
@@ -43,14 +43,14 @@
  @field next_link link to next link info struct (linked list)
  */
 typedef struct {
-    uint32_t pos_1:31, orient_1:1;
-    uint32_t pos_2:31, orient_2:1;
+    uint32_t orient_1:1, pos_1:31;
+    uint32_t orient_2:1, pos_2:31;
     uint32_t bam_ID;
     struct PM_link_info * next_link;
 } PM_link_info;
 
 /*! @typedef
- * @ *a*bstract Structure for storing information about specific links
+ * @abstract Structure for storing information about specific links
  * @field cid_1 tid of contig 1 (from BAM header)
  * @field cid_2 tid of contig 2 (cid_1 < cid_2)
  * @field numLinks number of link info structures in linked list

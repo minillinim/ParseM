@@ -43,8 +43,14 @@
 
 typedef BGZF bamFile;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern int vomit(int fred);
+
 /*! @typedef
- @ *a*bstract Auxiliary data structure used in read_bam
+ @abstract Auxiliary data structure used in read_bam
  @field fp the file handler
  @field iter NULL if a region not specified
  @field min_mapQ mapQ filter
@@ -57,7 +63,7 @@ typedef struct {                    //
 } aux_t;
 
 /*! @typedef
- @ a*bstract Structure for returning mapping results
+ @abstract Structure for returning mapping results
  @field plp_bp number of bases piled up on each contig
  @field contig_names names of the reference sequences
  @field contig_lengths lengths of the referene sequences
@@ -78,10 +84,6 @@ typedef struct {
     char ** contig_names;
     cfuhash_table_t * links;
 } PM_mapping_results;
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 int read_bam(void *data,
              bam1_t *b);

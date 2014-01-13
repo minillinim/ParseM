@@ -28,8 +28,8 @@
 #include <unistd.h>
 
 // htslib
-#include "htslib/bgzf.h"
-#include "htslib/sam.h"
+//#include "htslib/bgzf.h"
+//#include "htslib/sam.h"
 
 // cfuhash
 #include "cfuhash.h"
@@ -42,6 +42,8 @@
 // proper linking read is a properly paired, (primary alignment) of the first read in thr pair
 #define PM_BAM_FSUPP (BAM_FSECONDARY | BAM_FSUPPLEMENTARY)
 #define PM_BAM_FMAPPED (BAM_FMUNMAP | BAM_FUNMAP)
+
+extern int vomit(int fred) { return fred*44; }
 
 void init_MR(PM_mapping_results * MR,
              bam_hdr_t * BAM_header,

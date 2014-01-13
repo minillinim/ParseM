@@ -6,6 +6,7 @@
 
 // local includes
 #include "bamParser.h"
+#include "pairedLink.h"
 
 int main(int argc, char *argv[])
 {
