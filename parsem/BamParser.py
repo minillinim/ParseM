@@ -45,7 +45,7 @@ import ctypes as c
 class BamParser:
     """Main class for reading in and parsing contigs"""
     def __init__(self):
-        libPMBam = c.cdll.LoadLibrary('/home/uqmimelf/working/sw/ParseM/c/libPMBam.a')
+        libPMBam = c.cdll.LoadLibrary('/home/uqmimelf/working/sw/ParseM/c/bam/libPMBam.a')
         vom = libPMBam.vomit
         print vom(9)
 

@@ -1,8 +1,18 @@
 CC = gcc
-CFLAGS = -g -fPIC -pthread -O2 -Wall
-HTS_LIB_LOC = /usr/local/lib
-LIB_FLAGS = -static-libgcc -shared -Wl,-rpath,$(HTS_LIB_LOC),-soname,libPMBam.so.0
-LIBS = -lcfu -lhts -lm
+
+LIBHTS_CPPFLAGS = -I/usr/local/include
+LIBHTS_LDFLAGS = -L/home/uqmimelf/local/opt/htslib
+LIBHTS_LIBS = -lhts
+LIBHTS_LIB_DIR = /home/uqmimelf/local/opt/htslib
+
+LIBCFU_CPPFLAGS = -I/usr/local/include
+LIBCFU_LDFLAGS = -L/usr/local/lib
+LIBCFU_LIBS = -lcfu
+LIBCFU_LIB_DIR = @LIBCFU_LIB_DIR@
+
+CFLAGS = -g -fPIC -pthread -O2 -Wall $(LIBHTS_CPPFLAGS) $(LIBCFU_CPPFLAGS)
+LIB_FLAGS = -static-libgcc -shared -Wl,-rpath,$(LIBHTS_LIB_DIR),-soname,libPMBam.so.0
+LIBS =  -lm $(LIBCFU_LDFLAGS) $(LIBCFU_LIBS) $(LIBHTS_LDFLAGS) $(LIBHTS_LIBS)
 EXECUTABLE = bamParser
 PM_BAM_LIB = libPMBam.a
 

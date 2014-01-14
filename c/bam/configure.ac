@@ -1,6 +1,7 @@
 dnl Autoconf for parsem
 AC_PREREQ(2.61)
-AC_INIT(ParseM, 0.1, mike@mikeimelfort.com)
+AC_INIT(ParseM_bam, 0.1, mike@mikeimelfort.com)
+AC_CONFIG_MACRO_DIR([m4])
 
 dnl Keep helpers in build-aux/ subdirectory to not leave too much junk.
 #AC_CONFIG_AUX_DIR([build-aux])
@@ -18,19 +19,21 @@ AC_CHECK_LIB([m],[lgamma,log,exp],
 
 
 # test for libcfu
-libcfu_flags=
-AC_CHECK_LIB([cfu],[cfuhash_new_with_initial_size],
-             [cfulib_flags="-lcfu"
-              AC_DEFINE([HAVE_CFULIB],[1],[Defines to 1 if the cfu library (-lcfu) is found])],
-             [AC_MSG_ERROR(l[ibcfu not found])])
+AX_LIBCFU
+if test $HAVE_LIBCFU = no; then
+AC_MSG_ERROR([Cannot find libcfu])
+else
+AM_CONDITIONAL([LIBCFU_FOUND], [test $HAVE_LIBCFU = yes])
+fi        
+             
 
-
-AC_ARG_WITH([hts],
-  [AS_HELP_STRING([--with-hts],
-    [location of libhts.a, defaults to /usr/local/lib])],
-  [HTS_LIB_LOC="$withval"],
-  [HTS_LIB_LOC='/usr/local/lib'])
-AC_SUBST([HTS_LIB_LOC])
+# test for libcfu
+AX_LIBHTS
+if test $HAVE_LIBHTS = no; then
+AC_MSG_ERROR([Cannot find libhts])
+else
+AM_CONDITIONAL([LIBHTS_FOUND], [test $HAVE_LIBHTS = yes])
+fi        
 
 dnl Write #defines to config.h file.
 dnl You need to generate config.h.in, for example using autoheader.
