@@ -2,9 +2,11 @@ MANIFEST
 build/
 dist/
 parsem/*.pyc
-c/*~
-c/bamParser
-c/config.status
-c/*.o
-c/*.a
+c/bam/*~
+c/bam/bamParser
+c/bam/config.status
+c/bam/config.log
+c/bam/*.o
+c/bam/*.a
+c/bam/autom4te.cache/
 pip-log.txt

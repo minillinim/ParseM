@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='ParseM',
-    version='0.0.1',
+    version='0.0.2',
     author='Michael Imelfort',
     author_email='mike@mikeimelfort.com',
     packages=['parsem', 'parsem.test'],
