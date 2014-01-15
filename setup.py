@@ -45,7 +45,7 @@ else:
 # return to regular viewing
 setup(
     name='ParseM',
-    version='0.0.2',
+    version='0.0.3',
     author='Michael Imelfort',
     author_email='mike@mikeimelfort.com',
     packages=['parsem', 'parsem.test'],
