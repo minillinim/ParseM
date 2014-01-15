@@ -1,14 +1,14 @@
 CC = gcc
 
 LIBHTS_CPPFLAGS = -I/usr/local/include
-LIBHTS_LDFLAGS = -L/home/uqmimelf/local/opt/htslib
+LIBHTS_LDFLAGS = -L/usr/local/lib
 LIBHTS_LIBS = -lhts
-LIBHTS_LIB_DIR = /home/uqmimelf/local/opt/htslib
+LIBHTS_LIB_DIR = /usr/local/lib
 
 LIBCFU_CPPFLAGS = -I/usr/local/include
 LIBCFU_LDFLAGS = -L/usr/local/lib
 LIBCFU_LIBS = -lcfu
-LIBCFU_LIB_DIR = @LIBCFU_LIB_DIR@
+LIBCFU_LIB_DIR = 
 
 CFLAGS = -g -fPIC -pthread -O2 -Wall $(LIBHTS_CPPFLAGS) $(LIBCFU_CPPFLAGS)
 LIB_FLAGS = -static-libgcc -shared -Wl,-rpath,$(LIBHTS_LIB_DIR),-soname,libPMBam.so.0

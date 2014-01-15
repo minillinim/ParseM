@@ -161,12 +161,10 @@ cfuhash_table_t *links = cfuhash_new_with_initial_size(30); cfuhash_destroy(link
         AC_SUBST([LIBCFU_CPPFLAGS])
         AC_SUBST([LIBCFU_LDFLAGS])
         AC_SUBST([LIBCFU_LIBS])
-        AC_SUBST(LIBCFU_LIB_DIR)
+        AC_SUBST([LIBCFU_LIB_DIR])
 
         HAVE_LIBCFU="yes"
     else
         HAVE_LIBCFU="no"
     fi
-
-    AC_MSG_RESULT([$HAVE_LIBCFU])
 ])

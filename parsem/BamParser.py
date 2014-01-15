@@ -36,6 +36,7 @@ __status__ = "Dev"
 ###############################################################################
 import os
 import ctypes as c
+import pkg_resources
 
 ###############################################################################
 ###############################################################################
@@ -45,7 +46,9 @@ import ctypes as c
 class BamParser:
     """Main class for reading in and parsing contigs"""
     def __init__(self):
-        libPMBam = c.cdll.LoadLibrary('/home/uqmimelf/working/sw/ParseM/c/bam/libPMBam.a')
+        package_dir, filename = os.path.split(__file__)
+        c_lib = os.path.join(package_dir, 'c', 'bam', 'libPMBam.a')
+        libPMBam = c.cdll.LoadLibrary(c_lib)
         vom = libPMBam.vomit
         print vom(9)
 

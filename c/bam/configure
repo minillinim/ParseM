@@ -574,6 +574,7 @@ LIBHTS_LDFLAGS
 LIBHTS_CPPFLAGS
 LIBCFU_FOUND_FALSE
 LIBCFU_FOUND_TRUE
+LIBCFU_LIB_DIR
 LIBCFU_LIBS
 LIBCFU_LDFLAGS
 LIBCFU_CPPFLAGS
@@ -3075,13 +3076,11 @@ rm -f core conftest.err conftest.$ac_objext \
 
 
 
+
         HAVE_LIBCFU="yes"
     else
         HAVE_LIBCFU="no"
     fi
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $HAVE_LIBCFU" >&5
-$as_echo "$HAVE_LIBCFU" >&6; }
 
 if test $HAVE_LIBCFU = no; then
 as_fn_error $? "Cannot find libcfu" "$LINENO" 5
@@ -3097,7 +3096,7 @@ fi
 fi
 
 
-# test for libcfu
+# test for libhts
 
 
 # Check whether --with-libhts-inc was given.
@@ -3253,9 +3252,6 @@ rm -f core conftest.err conftest.$ac_objext \
     else
         HAVE_LIBHTS="no"
     fi
-
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $HAVE_LIBHTS" >&5
-$as_echo "$HAVE_LIBHTS" >&6; }
 
 if test $HAVE_LIBHTS = no; then
 as_fn_error $? "Cannot find libhts" "$LINENO" 5

@@ -27,7 +27,7 @@ AM_CONDITIONAL([LIBCFU_FOUND], [test $HAVE_LIBCFU = yes])
 fi        
              
 
-# test for libcfu
+# test for libhts
 AX_LIBHTS
 if test $HAVE_LIBHTS = no; then
 AC_MSG_ERROR([Cannot find libhts])

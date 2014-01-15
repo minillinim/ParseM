@@ -81,7 +81,7 @@ AC_DEFUN([AX_LIBHTS],
         libhts_lib_found="no"
         AC_MSG_RESULT([not found])
     fi
-
+    
     libhts_libs="-lhts"
 
     dnl
@@ -169,6 +169,4 @@ bam_hdr_t *h = 0;
     else
         HAVE_LIBHTS="no"
     fi
-
-    AC_MSG_RESULT([$HAVE_LIBHTS])
 ])

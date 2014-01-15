@@ -3,10 +3,17 @@ build/
 dist/
 parsem/*.pyc
 c/bam/*~
+c/bam/m4/*~
 c/bam/bamParser
 c/bam/config.status
 c/bam/config.log
+c/bam/aclocal.m4
+c/bam/autogen.sh
+c/bam/fred
+c/bam/install-sh
+c/bam/missing
 c/bam/*.o
 c/bam/*.a
 c/bam/autom4te.cache/
 pip-log.txt
+
