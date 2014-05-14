@@ -2,6 +2,8 @@
 
 ## Overview
 
+ParseM is an attempt to put all the little bits of Python-based biological file parsing snippets into one place. I am aware that other groups are doing this (in a much nicer fashion than I) so I'm not going to try make the best Fasta parser ever, although there is one here. The main object of ParseM is to store a BAM-file parser I'm writing in C and wrapping in Python. I'm using htslib to do this. This part of the code is intended to provide a faster, more stable interface to parsing BAM files than PySam.
+
 ## Installation
 
 Dependencies:
