@@ -48,7 +48,6 @@ setup(
     author='Michael Imelfort',
     author_email='mike@mikeimelfort.com',
     packages=['parsem', 'parsem.test'],
-    scripts=['bin/ParseM'],
     url='http://pypi.python.org/pypi/ParseM/',
     license='GPLv3',
     description='ParseM',
