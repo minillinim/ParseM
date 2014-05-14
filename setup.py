@@ -2,7 +2,7 @@ from distutils.core import setup
 from distutils.command.install import INSTALL_SCHEMES
 import sys
 from subprocess import call
-from os.path import join
+from os.path import join, abspath
 from os import chdir, getcwd
 
 xtra_opts = {"--with-libcfu-inc":"libcfu headers at this location",
@@ -21,17 +21,16 @@ if '--help' not in sys.argv:
     for opt in xtra_opts.keys():
         try:
             opt_idx = sys.argv.index(opt)
-            configure_args.append(opt+"="+sys.argv[opt_idx+1])
+            configure_args.append(opt+"="+abspath(sys.argv[opt_idx+1]))
             del sys.argv[opt_idx+1]
             sys.argv.remove(opt)
         except ValueError:
             pass
-    configure_args = " ".join(configure_args)
 
     # configure and make the c portion of the program
     cur_dir = getcwd()
     chdir(join(cur_dir, 'c', 'bam'))
-    call([join(getcwd(), "configure"), configure_args])
+    call([join(getcwd(), "configure")] + configure_args)
     call(['make','clean'])
     call(['make'])
     chdir(cur_dir)

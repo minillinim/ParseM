@@ -198,3 +198,4 @@ void print_MR(PM_mapping_results * MR);
 #endif
 
 #endif // PM_BAM_PARSER_H
+
