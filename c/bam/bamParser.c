@@ -138,7 +138,7 @@ int read_bam(void *data,
              bam1_t *b) // read level filters better go here to avoid pileup
 {
     aux_t *aux = (aux_t*)data; // data in fact is a pointer to an auxiliary structure
-    int ret = aux->iter? hts_itr_next(aux->fp, aux->iter, b, (hts_readrec_f)(bam_readrec), 0) : bam_read1(aux->fp, b);
+    int ret = aux->iter? hts_itr_next(aux->fp, aux->iter, b, 0) : bam_read1(aux->fp, b);
     if (!(b->core.flag&BAM_FUNMAP)) {
         if ((int)b->core.qual < aux->min_mapQ) b->core.flag |= BAM_FUNMAP;
         else if (aux->min_len && bam_cigar2qlen((&b->core)->n_cigar, bam_get_cigar(b)) < aux->min_len) b->core.flag |= BAM_FUNMAP;
