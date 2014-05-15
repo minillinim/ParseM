@@ -1,5 +1,5 @@
 include *.md
-recursive-include c *.c
-recursive-include c *.h
-recursive-include c configure*
-recursive-include c Make*
+recursive-include c/bam *.c
+recursive-include c/bam *.h
+recursive-include c/bam configure
+recursive-include c/bam Makefile

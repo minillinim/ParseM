@@ -12,35 +12,38 @@ xtra_opts = {"--with-libcfu-inc":"libcfu headers at this location",
 
 
 if '--help' not in sys.argv:
-    # set the location of the compiled c library to the place where the headers will be
-    for scheme in INSTALL_SCHEMES.values():
-        scheme['data'] = join(scheme['platlib'], 'parsem', 'c', 'bam')
+    if 'sdist' not in sys.argv:
+        # set the location of the compiled c library to the place where the headers will be
+        for scheme in INSTALL_SCHEMES.values():
+            scheme['data'] = join(scheme['platlib'], 'parsem', 'c', 'bam')
 
-    # grab extra configuration arguments
-    configure_args = []
-    for opt in xtra_opts.keys():
-        try:
-            opt_idx = sys.argv.index(opt)
-            configure_args.append(opt+"="+sys.argv[opt_idx+1])
-            del sys.argv[opt_idx+1]
-            sys.argv.remove(opt)
-        except ValueError:
-            pass
-    configure_args = " ".join(configure_args)
+        # grab extra configuration arguments
+        configure_args = []
+        for opt in xtra_opts.keys():
+            try:
+                opt_idx = sys.argv.index(opt)
+                configure_args.append(opt+"="+sys.argv[opt_idx+1])
+                del sys.argv[opt_idx+1]
+                sys.argv.remove(opt)
+            except ValueError:
+                pass
+        configure_args = " ".join(configure_args)
 
-    # configure and make the c portion of the program
-    cur_dir = getcwd()
-    chdir(join(cur_dir, 'c', 'bam'))
-    call([join(getcwd(), "configure"), configure_args])
-    call(['make','clean'])
-    call(['make'])
-    chdir(cur_dir)
+        # configure and make the c portion of the program
+        cur_dir = getcwd()
+        chdir(join(cur_dir, 'c', 'bam'))
+        call([join(getcwd(), "configure"), configure_args])
+        call(['make','clean'])
+        call(['make'])
+        chdir(cur_dir)
 else:
     print
     print "Embedded C options (for building libPMBam.a) USE: --OPTION<space>PATH"
     for opt in xtra_opts.keys():
         print "  %s  %s"%(opt,xtra_opts[opt])
     print
+
+print sys.argv
 
 # return to regular viewing
 setup(
