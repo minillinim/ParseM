@@ -1,7 +1,7 @@
 //#############################################################################
 //
 //   pairedLink.h
-//   
+//
 //   Implements struct and methods for storing paired read links
 //
 //   Copyright (C) Michael Imelfort
@@ -69,7 +69,7 @@ extern "C" {
 
 /*!
  * @abstract Add a link info struct to the main link table.
- * 
+ *
  * @param  cid_1  tid of contig 1 ( from BAM header )
  * @param  cid_2  tid of contig 2
  * @param  pos_1  position of read in contig 1
@@ -78,7 +78,7 @@ extern "C" {
  * @param  orient_2  orientation of read in contig 2
  * @param  bam_ID  id of the BAM file link originates from
  * @return void
- * 
+ *
  * @discussion The contigs can be added in any order hovever the pos and orient_1
  * variables must match this ordering. The code will sort cids accordingly.
  */
@@ -93,7 +93,7 @@ void addLink(cfuhash_table_t * linkTable,
 
 /*!
  * @abstract Walk along the link info linked list destoying the current node
- * 
+ *
  * @param  LI_ptr pointer to the current node
  * @return 1 if should keep walking, 0 is at end of list
  */
@@ -101,7 +101,7 @@ int destroyLinkInfo_andNext(PM_link_info** LI_ptr);
 
 /*!
  * @abstract Destroy all links information
- * 
+ *
  * @param  linkHash pointer to the hash to be desroyed
  * @return void
  */
@@ -109,7 +109,7 @@ void destroyLinks(cfuhash_table_t * linkHash);
 
 /*!
  * @abstract Walk along the link info linked list
- * 
+ *
  * @param  LI_ptr pointer to the current node
  * @return 1 if should keep walking, 0 is at end of list
  */
@@ -119,9 +119,9 @@ int getNextLinkInfo(PM_link_info** LI_ptr);
         *** PRINTING AND I/O ***
         ***********************/
 
-void printLinks(cfuhash_table_t * linkHash, char ** contigNames);
-void printLinkPair(PM_link_pair* LP, char ** contigNames);
-void printLinkInfo(PM_link_info* LI);
+void printLinks(cfuhash_table_t * linkHash, char ** bamNames, char ** contigNames);
+void printLinkPair(PM_link_pair* LP, char ** bamNames, char ** contigNames);
+void printLinkInfo(PM_link_info* LI, char ** bamNames);
 
 #ifdef __cplusplus
 }

@@ -1,7 +1,7 @@
 //#############################################################################
 //
 //   pairedLink.c
-//   
+//
 //   Implements struct and methods for storing paired read links
 //
 //   Copyright (C) Michael Imelfort
@@ -65,9 +65,9 @@ void addLink(cfuhash_table_t * linkHash,
         LI->pos_2 = pos_1;
     }
     LI->bam_ID = bam_ID;
-    
+
     PM_link_info** next_link_ptr = (PM_link_info**) &LI->next_link;
-    
+
     // see if the key is in the hash already
     char * key = calloc(30, sizeof(char)); // allocate room for the key
     makeContigKey(key, cid_1, cid_2);
@@ -79,7 +79,7 @@ void addLink(cfuhash_table_t * linkHash,
         base_LP->LI = LI;
         base_LP->numLinks++;
     }
-    else 
+    else
     {
         // we'll need to build a bit of infrastructure
         // store the contig ids once only
@@ -94,10 +94,10 @@ void addLink(cfuhash_table_t * linkHash,
             LP->cid_1 = cid_2;
             LP->cid_2 = cid_1;
         }
-        LP->LI = LI;    
+        LP->LI = LI;
         LP->numLinks = 1;
         *next_link_ptr = LI; // point to self means end of list
-        
+
         // finally, add the lot to the hash
         cfuhash_put(linkHash, key, LP);
     }
@@ -128,16 +128,21 @@ void destroyLinks(cfuhash_table_t * linkHash)
     size_t key_count = 0;
     int i = 0;
     keys = (char **)cfuhash_keys_data(linkHash, &key_count, &key_sizes, 0);
-    
+
     for (i = 0; i < (int)key_count; i++) {
         PM_link_pair * base_LP = cfuhash_get(linkHash, keys[i]);
-        free(keys[i]);
+        if(keys[i] != 0)
+            free(keys[i]);
         PM_link_info* LI = base_LP->LI;
         while(destroyLinkInfo_andNext(&LI));
-        free(base_LP);
+        if(base_LP !=0)
+            free(base_LP);
     }
-    free(keys);
-    free(key_sizes);    
+    if(keys != 0)
+        free(keys);
+
+    if(key_sizes != 0)
+        free(key_sizes);
 }
 
 int getNextLinkInfo(PM_link_info** LI_ptr)
@@ -151,35 +156,35 @@ int getNextLinkInfo(PM_link_info** LI_ptr)
     }
 }
 
-void printLinks(cfuhash_table_t * linkHash, char ** contigNames) 
+void printLinks(cfuhash_table_t * linkHash, char ** bamNames, char ** contigNames)
 {
     char **keys = NULL;
     size_t *key_sizes = NULL;
     size_t key_count = 0;
     int i = 0;
     keys = (char **)cfuhash_keys_data(linkHash, &key_count, &key_sizes, 0);
-    
+
     for (i = 0; i < (int)key_count; i++) {
         PM_link_pair * LP = cfuhash_get(linkHash, keys[i]);
         free(keys[i]);
-        printLinkPair(LP, contigNames);
+        printLinkPair(LP, bamNames, contigNames);
     }
     free(keys);
-    free(key_sizes);    
+    free(key_sizes);
 }
 
-void printLinkPair(PM_link_pair* LP, char ** contigNames) 
+void printLinkPair(PM_link_pair* LP, char ** bamNames, char ** contigNames)
 {
     printf("===\n(%s, %s, %d links)\n",  contigNames[LP->cid_1], contigNames[LP->cid_2], LP->numLinks);
     PM_link_info* LI = LP->LI;
     do {
         printf("\t");
-        printLinkInfo(LI);
+        printLinkInfo(LI, bamNames);
         printf("\n");
     } while(getNextLinkInfo(&LI));
 }
 
-void printLinkInfo(PM_link_info* LI) 
+void printLinkInfo(PM_link_info* LI, char ** bamNames)
 {
-    printf("(%d,%d -> %d,%d, BAM %d)",  LI->pos_1, LI->orient_1, LI->pos_2, LI->orient_2, LI->bam_ID);
+    printf("(%d,%d -> %d,%d, %s)",  LI->pos_1, LI->orient_1, LI->pos_2, LI->orient_2, bamNames[LI->bam_ID]);
 }

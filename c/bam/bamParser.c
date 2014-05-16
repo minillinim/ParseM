@@ -1,7 +1,7 @@
 //#############################################################################
 //
 //   bamParser.c
-//   
+//
 //   Determine average coverage values and linking read pairs
 //
 //   Copyright (C) Michael Imelfort
@@ -43,11 +43,18 @@
 #define PM_BAM_FSUPP (BAM_FSECONDARY | BAM_FSUPPLEMENTARY)
 #define PM_BAM_FMAPPED (BAM_FMUNMAP | BAM_FUNMAP)
 
-extern int vomit(int fred) { return fred*44; }
+PM_mapping_results * create_MR(void)
+{
+    //-----
+    // allocate space for a new MR struct
+    //
+    return calloc(1, sizeof(PM_mapping_results));
+}
 
 void init_MR(PM_mapping_results * MR,
              bam_hdr_t * BAM_header,
              int numBams,
+             char * bamFiles[],
              int doLinks,
              int doOutlierCoverage,
              int ignoreSuppAlignments
@@ -62,34 +69,201 @@ void init_MR(PM_mapping_results * MR,
     MR->is_links_included = doLinks;
     MR->is_outlier_coverage = doOutlierCoverage;
     MR->is_ignore_supps = ignoreSuppAlignments;
-    
+
     if(MR->num_contigs != 0 && MR->num_bams != 0) {
         // make room to store read counts
         MR->plp_bp = calloc(MR->num_contigs, sizeof(uint32_t*));
         for(i = 0; i < MR->num_contigs; ++i) {
             MR->plp_bp[i] = calloc(MR->num_bams, sizeof(uint32_t));
-        }        
+        }
 
+        // store BAM file names
+        MR->bam_file_names = calloc(MR->num_bams, sizeof(char*));
+        for (i = 0; i < numBams; ++i) {
+            MR->bam_file_names[i] = strdup(bamFiles[i]);
+        }
+
+        // place for contig storage
         MR->contig_names = calloc(MR->num_contigs, sizeof(char*));
         MR->contig_lengths = calloc(MR->num_contigs, sizeof(uint32_t));
         for(i =0; i < MR->num_contigs; ++i) {
             MR->contig_names[i] = strdup(BAM_header->target_name[i]);
             MR->contig_lengths[i] = (uint32_t)BAM_header->target_len[i];
         }
+
+        //----------------------------
         // only allocate if we NEED to
+        //----------------------------
         if (MR->is_outlier_coverage) {
-            MR->contig_length_correctors = calloc(MR->num_contigs, sizeof(uint32_t));
+            MR->contig_length_correctors = calloc(MR->num_contigs, sizeof(uint32_t*));
             for(i = 0; i < MR->num_contigs; ++i) {
                 MR->contig_length_correctors[i] = calloc(MR->num_bams, sizeof(uint32_t));
-            }        
+            }
         } else {
             MR->contig_length_correctors = NULL;
         }
+
+        if(doLinks)
+        {
+            cfuhash_table_t *links = cfuhash_new_with_initial_size(30);
+            cfuhash_set_flag(links, CFUHASH_FROZEN_UNTIL_GROWS);
+            MR->links = links;
+        }
+        else
+        {
+            MR->links = 0;
+        }
     }
-    
-    cfuhash_table_t *links = cfuhash_new_with_initial_size(30);  
-    cfuhash_set_flag(links, CFUHASH_FROZEN_UNTIL_GROWS);
-    MR->links = links;
+}
+
+void merge_MRs(PM_mapping_results * MR_A, PM_mapping_results * MR_B)
+{
+    //----
+    // Merge the contents of MR_B into MR_A
+    //
+    // Check to see that the number of contigs are the same
+    int i = 0, j = 0, k = 0;
+    if(MR_A->num_contigs != MR_B->num_contigs)
+    {
+        char str[80];
+        sprintf(str, "Unequal number of contigs in MR structs to be merged (Num contigs: %d, %d)", MR_A->num_contigs, MR_B->num_contigs);
+        printError(str, __LINE__);
+        return;
+    }
+
+    // now check that the lengths of all the contigs are the same
+    // just check every 100th contig
+    for(i=0; i < MR_A->num_contigs; ++i)
+    {
+        if(i < MR_A->num_contigs)
+        {
+            if(MR_A->contig_lengths[i] != MR_B->contig_lengths[i])
+            {
+                char str[80];
+                sprintf(str, "Unequal contig lengths in MR structs to be merged (Contig#: %d, Lengths: %d, %d)", i, MR_A->num_contigs, MR_B->num_contigs);
+                printError(str, __LINE__);
+                return;
+            }
+        }
+        else
+        {
+            break;
+        }
+//        i += 100;
+    }
+
+    // we can assume that the headers are the same. So now time to merge the data
+
+    // keep a backup of these guys
+    uint32_t old_num_bams = MR_A->num_bams;
+    char ** old_bam_file_names = MR_A->bam_file_names;
+    uint32_t ** old_contig_length_correctors = MR_A->contig_length_correctors;
+    uint32_t ** old_plp_bp = MR_A->plp_bp;
+
+    //-----
+    // Fix the num bams and bam file names
+    MR_A->num_bams += MR_B->num_bams;
+    // realloc the memory for MR_A
+    MR_A->bam_file_names = calloc(MR_A->num_bams, sizeof(char*));
+    for (i = 0; i < old_num_bams; ++i) {
+        MR_A->bam_file_names[i] = strdup(old_bam_file_names[i]);
+    }
+    for (j = 0; j < MR_B->num_bams; ++j) {
+        MR_A->bam_file_names[i] = strdup(MR_B->bam_file_names[j]);
+        ++i;
+    }
+    // free these original data
+    if(old_bam_file_names != 0) {
+        for(i = 0; i < old_num_bams; ++i) {
+            if(old_bam_file_names[i] != 0)
+                free(old_bam_file_names[i]);
+        }
+        free(old_bam_file_names);
+    }
+
+    //-----
+    // Pileups
+    MR_A->plp_bp = calloc(MR_A->num_contigs, sizeof(uint32_t*));
+    for(i = 0; i < MR_A->num_contigs; ++i) {
+        MR_A->plp_bp[i] = calloc(MR_A->num_bams, sizeof(uint32_t));
+    }
+    for(k = 0; k < MR_A->num_contigs; ++k)
+    {
+        for (i = 0; i < old_num_bams; ++i) {
+            printf("A: %d, %d, %d\n", k, i, old_plp_bp[k][i]);
+            MR_A->plp_bp[k][i] = old_plp_bp[k][i];
+        }
+        for (j = 0; j < MR_B->num_bams; ++j) {
+            printf("B: %d, %d, %d\n", k, i, MR_B->plp_bp[k][j]);
+            MR_A->plp_bp[k][i] = MR_B->plp_bp[k][j];
+            ++i;
+        }
+    }
+    if(old_plp_bp != 0) {
+        for(i = 0; i < MR_A->num_contigs; ++i) {
+            if(old_plp_bp[i] != 0)
+                free(old_plp_bp[i]);
+        }
+        free(old_plp_bp);
+    }
+
+    //-----
+    // Contig length correctors
+    //
+    if (MR_A->is_outlier_coverage) {
+        MR_A->contig_length_correctors = calloc(MR_A->num_contigs, sizeof(uint32_t*));
+        for(i = 0; i < MR_A->num_contigs; ++i) {
+            MR_A->contig_length_correctors[i] = calloc(MR_A->num_bams, sizeof(uint32_t));
+        }
+        for(k = 0; k < MR_A->num_contigs; ++k)
+        {
+            for (i = 0; i < old_num_bams; ++i) {
+                MR_A->contig_length_correctors[k][i] = old_contig_length_correctors[k][i];
+            }
+            for (j = 0; j < MR_B->num_bams; ++j) {
+                MR_A->contig_length_correctors[k][i] = MR_B->contig_length_correctors[k][j];
+                ++i;
+            }
+        }
+        if(old_contig_length_correctors != 0) {
+            for(i = 0; i < MR_A->num_contigs; ++i) {
+                if(old_contig_length_correctors[i] != 0)
+                    free(old_contig_length_correctors[i]);
+            }
+            free(old_contig_length_correctors);
+        }
+    }
+
+
+    //-----
+    // Links
+    if(MR_A->is_links_included)
+    {
+        // break the pattern of overwriting. We can just add the links here
+        char **keys = NULL;
+        size_t *key_sizes = NULL;
+        size_t key_count = 0;
+        keys = (char **)cfuhash_keys_data(MR_B->links, &key_count, &key_sizes, 0);
+
+        for (i = 0; i < (int)key_count; i++) {
+            PM_link_pair * LP = cfuhash_get(MR_B->links, keys[i]);
+            free(keys[i]);
+            PM_link_info* LI = LP->LI;
+            do {
+                addLink(MR_A->links,
+                        LP->cid_1,
+                        LP->cid_2,
+                        LI->pos_1,
+                        LI->pos_2,
+                        LI->orient_1,
+                        LI->orient_2,
+                        LI->bam_ID+old_num_bams);
+            } while(getNextLinkInfo(&LI));
+
+        }
+        free(keys);
+        free(key_sizes);
+    }
 }
 
 void destroy_MR(PM_mapping_results * MR)
@@ -99,38 +273,49 @@ void destroy_MR(PM_mapping_results * MR)
     //
     int i = 0;
     if(MR->num_contigs != 0 && MR->num_bams != 0) {
-        if(MR->plp_bp != NULL) {
+        if(MR->plp_bp != 0) {
             for(i = 0; i < MR->num_contigs; ++i) {
-                if(MR->plp_bp[i] != NULL)
+                if(MR->plp_bp[i] != 0)
                     free(MR->plp_bp[i]);
             }
             free(MR->plp_bp);
         }
-        if(MR->contig_names != NULL) {
+
+        if(MR->bam_file_names != 0) {
+            for(i = 0; i < MR->num_bams; ++i) {
+                if(MR->bam_file_names[i] != 0)
+                    free(MR->bam_file_names[i]);
+            }
+            free(MR->bam_file_names);
+        }
+
+        if(MR->contig_names != 0) {
             for(i = 0; i < MR->num_contigs; ++i) {
-                if(MR->contig_names[i] != NULL)
+                if(MR->contig_names[i] != 0)
                     free(MR->contig_names[i]);
             }
             free(MR->contig_names);
         }
-        if(MR->contig_lengths != NULL)
+
+        if(MR->contig_lengths != 0)
             free(MR->contig_lengths);
-        
-        if(MR->contig_length_correctors != NULL) {
+
+        if(MR->contig_length_correctors != 0) {
             for(i = 0; i < MR->num_contigs; ++i) {
-                if(MR->contig_length_correctors[i] != NULL)
+                if(MR->contig_length_correctors[i] != 0)
                     free(MR->contig_length_correctors[i]);
             }
             free(MR->contig_length_correctors);
         }
     }
-    
+
     // destroy paired links
-    destroyLinks(MR->links);
-    cfuhash_clear(MR->links);
-    cfuhash_destroy(MR->links);
-    
-    free(MR);
+    if(MR->is_links_included)
+    {
+        destroyLinks(MR->links);
+        cfuhash_clear(MR->links);
+        cfuhash_destroy(MR->links);
+    }
 }
 
 // This function reads a BAM alignment from one BAM file.
@@ -149,7 +334,7 @@ int read_bam(void *data,
 int parseCoverageAndLinks(int numBams,
                           int baseQ,
                           int mapQ,
-                          int minLen, 
+                          int minLen,
                           int doLinks,
                           int ignoreSuppAlignments,
                           int doOutlierCoverage,
@@ -163,7 +348,7 @@ int parseCoverageAndLinks(int numBams,
     if (ignoreSuppAlignments) {
         supp_check = PM_BAM_FSUPP;
     }
-    
+
     // initialize the auxiliary data structures
     const bam_pileup1_t **plp;
     bam_hdr_t *h = 0; // BAM header of the 1st input
@@ -173,6 +358,7 @@ int parseCoverageAndLinks(int numBams,
     // load contig names and BAM index.
     data = calloc(numBams, sizeof(void*)); // data[i] for the i-th input
     int beg = 0, end = 1<<30;  // set the default region
+
     for (i = 0; i < numBams; ++i) {
         data[i] = calloc(1, sizeof(aux_t));
         data[i]->fp = bgzf_open(bamFiles[i], "r"); // open BAM
@@ -184,28 +370,30 @@ int parseCoverageAndLinks(int numBams,
             h = htmp; // keep the header of the 1st BAM
         } else { bam_hdr_destroy(htmp); } // if not the 1st BAM, trash the header
     }
-    
+
     // initialise the mapping results struct
     init_MR(MR,
             h,
             numBams,
+            bamFiles,
             doLinks,
             doOutlierCoverage,
             ignoreSuppAlignments
            );
-    
+
     // the core multi-pileup loop
     mplp = bam_mplp_init(numBams, read_bam, (void**)data); // initialization
     n_plp = calloc(numBams, sizeof(int)); // n_plp[i] is the number of covering reads from the i-th BAM
     plp = calloc(numBams, sizeof(void*)); // plp[i] points to the array of covering reads (internal in mplp)
-    
+
     // initialise
-    int prev_tid = -1;  // the id of the previous positions tid    
+    int prev_tid = -1;  // the id of the previous positions tid
     int j, rejects = 0;
     int pos = 0; // current position in the contig ( 1 indexed )
     uint32_t ** position_holder; // hold the pileup count at each position in the contig
     position_holder = calloc(numBams, sizeof(uint32_t*));
     // go through each of the contigs in the file, from tid == 0 --> end
+
     while (bam_mplp_auto(mplp, &tid, &pos, n_plp, plp) > 0) { // come to the next covered position
         if (pos < beg || pos >= end) continue; // out of range; skip
         if(tid != prev_tid) {  // we've arrived at a new contig
@@ -239,9 +427,10 @@ int parseCoverageAndLinks(int numBams,
                         ((core.flag & PM_BAM_FMAPPED) == 0) &&      // both ends are mapped
                         ((core.flag & supp_check) == 0) &&          // is primary mapping (optional)
                         core.tid != core.mtid) {                    // hits different contigs
-                        
+
                         // looks legit
-                        addLink(MR->links,core.tid,                 // contig 1
+                        addLink(MR->links,
+                                core.tid,                           // contig 1
                                 core.mtid,                          // contig 2
                                 core.pos,                           // pos 1
                                 core.mpos,                          // pos 2
@@ -254,6 +443,7 @@ int parseCoverageAndLinks(int numBams,
             position_holder[i][pos] = n_plp[i] - rejects; // add this position's depth
         }
     }
+
     if(prev_tid != -1) {
         // at the end of a contig
         adjustPlpBp(MR, position_holder, prev_tid);
@@ -261,24 +451,25 @@ int parseCoverageAndLinks(int numBams,
             free(position_holder[i]);
         }
     }
+
     free(position_holder);
-    
-    //free(position_holder);
+
     free(n_plp); free(plp);
     bam_mplp_destroy(mplp);
     bam_hdr_destroy(h);
-    
+
     for (i = 0; i < numBams; ++i) {
         bgzf_close(data[i]->fp);
         if (data[i]->iter) bam_itr_destroy(data[i]->iter);
         free(data[i]);
     }
     free(data);
+
     return 0;
 }
 
 void adjustPlpBp(PM_mapping_results * MR,
-                 uint32_t ** position_holder,
+                 uint32_t ** positionHolder,
                  int tid
 ) {
     uint32_t num_bams = MR->num_bams;
@@ -288,14 +479,14 @@ void adjustPlpBp(PM_mapping_results * MR,
         uint32_t * drops = calloc(num_bams, sizeof(uint32_t));
         for(i = 0; i < num_bams; ++i) {
             // set the cut off at a stdev either side of the mean
-            float m = PM_mean(position_holder[i], MR->contig_lengths[tid]);
-            float std = PM_stdDev(position_holder[i], MR->contig_lengths[tid], m);
+            float m = PM_mean(positionHolder[i], MR->contig_lengths[tid]);
+            float std = PM_stdDev(positionHolder[i], MR->contig_lengths[tid], m);
             float lower_cut = ((m-std) < 0) ? 0 : (m-std);
             float upper_cut = m+std;
             for(pos = 0; pos < MR->contig_lengths[tid]; ++pos) {
-                if((position_holder[i][pos] <= upper_cut) && (position_holder[i][pos] >= lower_cut)) {
+                if((positionHolder[i][pos] <= upper_cut) && (positionHolder[i][pos] >= lower_cut)) {
                     // OK
-                    plp_sum[i] += position_holder[i][pos];
+                    plp_sum[i] += positionHolder[i][pos];
                 } else {
                     // DROP
                     ++drops[i];
@@ -308,7 +499,7 @@ void adjustPlpBp(PM_mapping_results * MR,
     } else {
         for(i = 0; i < num_bams; ++i) {
             for(pos = 0; pos < MR->contig_lengths[tid]; ++pos) {
-                plp_sum[i] += position_holder[i][pos];
+                plp_sum[i] += positionHolder[i][pos];
             }
             MR->plp_bp[tid][i] = plp_sum[i];
         }
@@ -340,6 +531,22 @@ float ** calculateCoverages(PM_mapping_results * MR) {
     return NULL;
 }
 
+void destroyCoverages(float ** covs, int numContigs) {
+    int i = 0;
+    for(i = 0; i < numContigs; ++i) {
+        free(covs[i]);
+    }
+    free(covs);
+}
+
+void printError(char* errorMessage, int line)
+{
+    //-----
+    // Consistent way to print error messages
+    //
+    printf("ERROR: At line: %d\n\t%s\n\n", line, errorMessage);
+}
+
 void print_MR(PM_mapping_results * MR) {
     int i = 0, j = 0;
     if(MR->num_contigs != 0 && MR->num_bams != 0) {
@@ -347,27 +554,24 @@ void print_MR(PM_mapping_results * MR) {
             float ** covs = calculateCoverages(MR); // get the coverages we want
             if(covs != NULL) {
                 // print away!
+                printf("Contig\tLength");
+                for(j = 0; j < MR->num_bams; ++j) {
+                    printf("\t%s",MR->bam_file_names[j]);
+                }
+                printf("\n");
                 for(i = 0; i < MR->num_contigs; ++i) {
                     printf("%s\t%d", MR->contig_names[i], MR->contig_lengths[i]);
                     for(j = 0; j < MR->num_bams; ++j) {
-                        printf("\t%0.3f", covs[i][j]);
+                        printf("\t%0.4f", covs[i][j]);
                     }
                     printf("\n");
                 }
                 // we're responsible for cleaning up the covs structure
                 destroyCoverages(covs, MR->num_contigs);
                 if(MR->is_links_included) {
-                    printLinks(MR->links, MR->contig_names);
+                    printLinks(MR->links, MR->bam_file_names, MR->contig_names);
                 }
             }
         }
     }
-}
-
-void destroyCoverages(float ** covs, int numContigs) {
-    int i = 0;
-    for(i = 0; i < numContigs; ++i) {
-        free(covs[i]);
-    }
-    free(covs);
 }

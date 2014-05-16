@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
 {
     // parse the command line
     int n = 0, do_links = 0, baseQ = 0, mapQ = 0, min_len = 0, do_outlier_coverage = 0;
-    while ((n = getopt(argc, argv, "q:Q:l:L:o")) >= 0) {
+    while ((n = getopt(argc, argv, "q:Q:l:Lo")) >= 0) {
         switch (n) {
             case 'l': min_len = atoi(optarg); break; // minimum query length
             case 'q': baseQ = atoi(optarg); break;   // base quality threshold
@@ -33,14 +33,14 @@ int main(int argc, char *argv[])
         fprintf(stderr, "\n");
         return 1;
     }
-    
+
     int num_bams = argc - optind; // the number of BAMs on the command line
     int i = 0;
-    char **bam_files = calloc(num_bams, sizeof(char*)); // bam file names
+    char **bam_files = calloc(num_bams, sizeof(char*));             // bam file names
     for (i = 0; i < num_bams; ++i) {
         bam_files[i] = strdup(argv[optind+i]);
     }
-    
+
     PM_mapping_results * mr = calloc(1, sizeof(PM_mapping_results));
     int ignore_supps = 1;
     int ret_val = parseCoverageAndLinks(num_bams,
@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
                                         mr);
     print_MR(mr);
     destroy_MR(mr);
-    
+
     for (i = 0; i < num_bams; ++i) {
         free(bam_files[i]);
     }
